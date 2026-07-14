@@ -1,0 +1,50 @@
+import express from "express";
+import helmet from "helmet";
+import cors from "cors";
+import cookieParser from "cookie-parser";
+
+import publicRoutes from "./routes/public.routes.js";
+import adminRoutes from "./routes/admin.routes.js";
+import { notFound, errorHandler } from "./middleware/error.js";
+import { issueCsrf, verifyCsrf } from "./middleware/csrf.js";
+
+export function createApp() {
+  const app = express();
+
+  // Behind a proxy (Render/Vercel/etc.) so req.ip reflects the real client.
+  app.set("trust proxy", 1);
+
+  app.use(helmet());
+  app.use(express.json({ limit: "5mb" }));
+  app.use(cookieParser());
+
+  // CORS — restricted to configured client origins, credentials enabled.
+  const origins = (process.env.CLIENT_ORIGIN || "http://localhost:5173")
+    .split(",")
+    .map((o) => o.trim())
+    .filter(Boolean);
+  app.use(
+    cors({
+      origin(origin, cb) {
+        // Allow same-origin / server-to-server (no Origin header) and whitelisted origins.
+        if (!origin || origins.includes(origin)) return cb(null, true);
+        return cb(new Error("Not allowed by CORS"));
+      },
+      credentials: true,
+    })
+  );
+
+  // Issue CSRF cookie on every request; enforce it on admin mutations.
+  app.use(issueCsrf);
+
+  app.get("/api/health", (req, res) => res.json({ ok: true }));
+  app.get("/api/csrf", (req, res) => res.json({ csrfToken: res.locals.csrfToken }));
+
+  app.use("/api", publicRoutes);
+  app.use("/api/admin", verifyCsrf, adminRoutes);
+
+  app.use(notFound);
+  app.use(errorHandler);
+
+  return app;
+}

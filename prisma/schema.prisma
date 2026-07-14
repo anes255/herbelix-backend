@@ -1,0 +1,58 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model Admin {
+  id           Int      @id @default(autoincrement())
+  username     String   @unique
+  passwordHash String
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+}
+
+model VerificationCode {
+  id             Int       @id @default(autoincrement())
+  code           String    @unique
+  productName    String
+  description    String?
+  batchNumber    String?
+  productionDate DateTime?
+  enabled        Boolean   @default(true)
+  verifiedCount  Int       @default(0)
+  lastVerifiedAt DateTime?
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+
+  @@index([productName])
+  @@index([enabled])
+  @@index([verifiedCount])
+  @@index([createdAt])
+}
+
+model VerificationLog {
+  id               Int      @id @default(autoincrement())
+  verificationCode String
+  ipAddress        String?
+  country          String?
+  browser          String?
+  device           String?
+  result           String
+  timestamp        DateTime @default(now())
+
+  @@index([timestamp])
+  @@index([result])
+  @@index([verificationCode])
+}
+
+model Settings {
+  id           Int      @id @default(1)
+  supportPhone String   @default("+213779452212")
+  siteName     String   @default("التحقق من أصالة المنتج")
+  logo         String?
+  updatedAt    DateTime @updatedAt
+}
