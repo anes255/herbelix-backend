@@ -3,6 +3,10 @@ import crypto from "crypto";
 const CSRF_COOKIE = "herblix_csrf";
 const CSRF_HEADER = "x-csrf-token";
 
+// Match the auth cookie's cross-site behavior (see middleware/auth.js).
+const SAME_SITE = process.env.COOKIE_SAMESITE || "lax";
+const SECURE = process.env.COOKIE_SECURE === "true" || SAME_SITE === "none";
+
 // Issues a non-HttpOnly CSRF cookie the SPA reads and echoes back in a header.
 export function issueCsrf(req, res, next) {
   let token = req.cookies?.[CSRF_COOKIE];
@@ -10,8 +14,8 @@ export function issueCsrf(req, res, next) {
     token = crypto.randomBytes(24).toString("hex");
     res.cookie(CSRF_COOKIE, token, {
       httpOnly: false,
-      secure: process.env.COOKIE_SECURE === "true",
-      sameSite: "lax",
+      secure: SECURE,
+      sameSite: SAME_SITE,
       path: "/",
     });
   }

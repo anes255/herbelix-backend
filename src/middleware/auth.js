@@ -8,18 +8,27 @@ export function signToken(payload) {
   });
 }
 
+// When frontend and backend live on different domains (e.g. Vercel + Render),
+// the cookie must be SameSite=None + Secure to be sent on cross-site requests.
+const SAME_SITE = process.env.COOKIE_SAMESITE || "lax";
+const SECURE = process.env.COOKIE_SECURE === "true" || SAME_SITE === "none";
+
 export function setAuthCookie(res, token) {
   res.cookie(COOKIE_NAME, token, {
     httpOnly: true,
-    secure: process.env.COOKIE_SECURE === "true",
-    sameSite: "lax",
+    secure: SECURE,
+    sameSite: SAME_SITE,
     maxAge: 8 * 60 * 60 * 1000, // 8h
     path: "/",
   });
 }
 
 export function clearAuthCookie(res) {
-  res.clearCookie(COOKIE_NAME, { path: "/" });
+  res.clearCookie(COOKIE_NAME, {
+    path: "/",
+    secure: SECURE,
+    sameSite: SAME_SITE,
+  });
 }
 
 // Protects admin routes. Reads the JWT from an HttpOnly cookie.
