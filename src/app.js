@@ -19,15 +19,31 @@ export function createApp() {
   app.use(cookieParser());
 
   // CORS — restricted to configured client origins, credentials enabled.
-  const origins = (process.env.CLIENT_ORIGIN || "http://localhost:5173")
+  // CLIENT_ORIGIN is a comma-separated list. Entries may use a "*" wildcard
+  // for subdomains, e.g. "https://*.vercel.app" to allow Vercel preview URLs.
+  const patterns = (process.env.CLIENT_ORIGIN || "http://localhost:5173")
     .split(",")
     .map((o) => o.trim())
     .filter(Boolean);
+
+  function isAllowedOrigin(origin) {
+    return patterns.some((p) => {
+      if (p === origin) return true;
+      if (p.includes("*")) {
+        const re = new RegExp(
+          "^" + p.replace(/[.]/g, "\\.").replace(/\*/g, "[^.]+") + "$"
+        );
+        return re.test(origin);
+      }
+      return false;
+    });
+  }
+
   app.use(
     cors({
       origin(origin, cb) {
         // Allow same-origin / server-to-server (no Origin header) and whitelisted origins.
-        if (!origin || origins.includes(origin)) return cb(null, true);
+        if (!origin || isAllowedOrigin(origin)) return cb(null, true);
         return cb(new Error("Not allowed by CORS"));
       },
       credentials: true,
