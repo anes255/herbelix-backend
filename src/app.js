@@ -1,12 +1,10 @@
 import express from "express";
 import helmet from "helmet";
 import cors from "cors";
-import cookieParser from "cookie-parser";
 
 import publicRoutes from "./routes/public.routes.js";
 import adminRoutes from "./routes/admin.routes.js";
 import { notFound, errorHandler } from "./middleware/error.js";
-import { issueCsrf, verifyCsrf } from "./middleware/csrf.js";
 
 export function createApp() {
   const app = express();
@@ -16,7 +14,6 @@ export function createApp() {
 
   app.use(helmet());
   app.use(express.json({ limit: "5mb" }));
-  app.use(cookieParser());
 
   // CORS — restricted to configured client origins, credentials enabled.
   // CLIENT_ORIGIN is a comma-separated list. Entries may use a "*" wildcard
@@ -46,18 +43,13 @@ export function createApp() {
         if (!origin || isAllowedOrigin(origin)) return cb(null, true);
         return cb(new Error("Not allowed by CORS"));
       },
-      credentials: true,
     })
   );
 
-  // Issue CSRF cookie on every request; enforce it on admin mutations.
-  app.use(issueCsrf);
-
   app.get("/api/health", (req, res) => res.json({ ok: true }));
-  app.get("/api/csrf", (req, res) => res.json({ csrfToken: res.locals.csrfToken }));
 
   app.use("/api", publicRoutes);
-  app.use("/api/admin", verifyCsrf, adminRoutes);
+  app.use("/api/admin", adminRoutes);
 
   app.use(notFound);
   app.use(errorHandler);

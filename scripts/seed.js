@@ -5,7 +5,7 @@ import { prisma } from "../src/utils/prisma.js";
 // Creates the default admin + settings row if they don't exist.
 async function main() {
   const username = process.env.ADMIN_USERNAME || "admin";
-  const password = process.env.ADMIN_PASSWORD || "Admin@12345";
+  const password = process.env.ADMIN_PASSWORD || "admin123";
 
   const existing = await prisma.admin.findUnique({ where: { username } });
   if (existing) {

@@ -1,10 +1,6 @@
 import bcrypt from "bcryptjs";
 import { prisma } from "../utils/prisma.js";
-import {
-  signToken,
-  setAuthCookie,
-  clearAuthCookie,
-} from "../middleware/auth.js";
+import { signToken } from "../middleware/auth.js";
 
 // POST /api/admin/login  { username, password }
 export async function login(req, res, next) {
@@ -22,16 +18,17 @@ export async function login(req, res, next) {
     }
 
     const token = signToken({ id: admin.id, username: admin.username });
-    setAuthCookie(res, token);
-    return res.json({ username: admin.username });
+    // Token returned in the body; the client stores it and sends it as
+    // `Authorization: Bearer <token>` on subsequent admin requests.
+    return res.json({ username: admin.username, token });
   } catch (err) {
     next(err);
   }
 }
 
-// POST /api/admin/logout
+// POST /api/admin/logout — with Bearer auth, logout is client-side (discard
+// the token). Kept for API completeness.
 export function logout(req, res) {
-  clearAuthCookie(res);
   res.json({ ok: true });
 }
 
