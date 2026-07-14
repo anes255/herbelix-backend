@@ -1,8 +1,9 @@
 generator client {
   provider      = "prisma-client-js"
-  // "native" for local dev; the debian targets are for Render/Linux hosts
-  // (fixes "Could not parse schema engine response" / libssl load errors).
-  binaryTargets = ["native", "debian-openssl-3.0.x", "debian-openssl-1.1.x"]
+  // "native" for local dev (Windows); "debian-openssl-3.0.x" matches the
+  // node:20-slim Docker image used on Render. Do NOT add 1.1.x — the Debian
+  // image is OpenSSL 3.0 and a stray 1.1 target can be mis-picked.
+  binaryTargets = ["native", "debian-openssl-3.0.x"]
 }
 
 datasource db {
