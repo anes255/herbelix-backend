@@ -5,6 +5,7 @@ import { getClientIp, parseUserAgent } from "../utils/request.js";
 // Result codes used for logging + client rendering.
 const RESULT = {
   AUTHENTIC: "authentic",
+  USED_BEFORE: "used_before",
   DISABLED: "disabled",
   NOT_FOUND: "not_found",
 };
@@ -51,17 +52,38 @@ export async function verifyCode(req, res, next) {
       });
     }
 
-    // Authentic — increment counters atomically.
+    // Enabled code. First verification vs. re-use.
+    const previousCount = record.verifiedCount;
+    const now = new Date();
+    const firstAt = record.firstVerifiedAt || record.lastVerifiedAt; // best-known first use
+
     const updated = await prisma.verificationCode.update({
       where: { id: record.id },
       data: {
         verifiedCount: { increment: 1 },
-        lastVerifiedAt: new Date(),
+        lastVerifiedAt: now,
+        firstVerifiedAt: record.firstVerifiedAt ?? now,
       },
     });
 
-    await log(req, raw, RESULT.AUTHENTIC);
+    if (previousCount > 0) {
+      // Code has already been verified before — likely re-scanned or copied.
+      await log(req, raw, RESULT.USED_BEFORE);
+      return res.status(200).json({
+        status: RESULT.USED_BEFORE,
+        message: "⚠️ الرمز تم استخدامه مسبقًا",
+        usedAt: firstAt,
+        product: {
+          productName: updated.productName,
+          productionDate: updated.productionDate,
+          description: updated.description,
+        },
+        supportPhone,
+      });
+    }
 
+    // First-time verification — authentic.
+    await log(req, raw, RESULT.AUTHENTIC);
     return res.status(200).json({
       status: RESULT.AUTHENTIC,
       message: "✅ هذا المنتج أصلي",

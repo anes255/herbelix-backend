@@ -26,10 +26,11 @@ model VerificationCode {
   description    String?
   batchNumber    String?
   productionDate DateTime?
-  enabled        Boolean   @default(true)
-  verifiedCount  Int       @default(0)
-  lastVerifiedAt DateTime?
-  createdAt      DateTime  @default(now())
+  enabled         Boolean   @default(true)
+  verifiedCount   Int       @default(0)
+  firstVerifiedAt DateTime?
+  lastVerifiedAt  DateTime?
+  createdAt       DateTime  @default(now())
   updatedAt      DateTime  @updatedAt
 
   @@index([productName])
