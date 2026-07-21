@@ -41,7 +41,13 @@ export function createApp() {
       origin(origin, cb) {
         // Allow same-origin / server-to-server (no Origin header) and whitelisted origins.
         if (!origin || isAllowedOrigin(origin)) return cb(null, true);
-        return cb(new Error("Not allowed by CORS"));
+        // Not allowed: respond WITHOUT CORS headers instead of throwing.
+        // Throwing surfaced as a confusing 500 and broke requests proxied
+        // through the frontend host (which forwards the browser's Origin).
+        // Auth is Bearer-only (no ambient cookies), so serving the request
+        // is safe — the browser still blocks cross-origin reads with no
+        // Access-Control-Allow-Origin header.
+        return cb(null, false);
       },
     })
   );
