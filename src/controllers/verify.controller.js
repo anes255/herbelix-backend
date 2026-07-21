@@ -57,7 +57,7 @@ export async function verifyCode(req, res, next) {
     const now = new Date();
     const firstAt = record.firstVerifiedAt || record.lastVerifiedAt; // best-known first use
 
-    const updated = await prisma.verificationCode.update({
+    await prisma.verificationCode.update({
       where: { id: record.id },
       data: {
         verifiedCount: { increment: 1 },
@@ -66,6 +66,9 @@ export async function verifyCode(req, res, next) {
       },
     });
 
+    // Note: product details are deliberately NOT returned to the public.
+    // The response only confirms authenticity, so a valid code can't be used
+    // to discover which product it belongs to.
     if (previousCount > 0) {
       // Code has already been verified before — likely re-scanned or copied.
       await log(req, raw, RESULT.USED_BEFORE);
@@ -73,11 +76,6 @@ export async function verifyCode(req, res, next) {
         status: RESULT.USED_BEFORE,
         message: "⚠️ الرمز تم استخدامه مسبقًا",
         usedAt: firstAt,
-        product: {
-          productName: updated.productName,
-          productionDate: updated.productionDate,
-          description: updated.description,
-        },
         supportPhone,
       });
     }
@@ -87,11 +85,6 @@ export async function verifyCode(req, res, next) {
     return res.status(200).json({
       status: RESULT.AUTHENTIC,
       message: "✅ هذا المنتج أصلي",
-      product: {
-        productName: updated.productName,
-        productionDate: updated.productionDate,
-        description: updated.description,
-      },
       supportPhone,
     });
   } catch (err) {
